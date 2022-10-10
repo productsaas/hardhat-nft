@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.8;
+pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "base64-sol/base64.sol";
 import "hardhat/console.sol";
-
-error ERC721Metadata__URI_QueryFor_NonExistentToken();
 
 contract DynamicSvgNft is ERC721, Ownable {
     uint256 private s_tokenCounter;
@@ -51,9 +49,9 @@ contract DynamicSvgNft is ERC721, Ownable {
 
     function mintNft(int256 highValue) public {
         s_tokenIdToHighValues[s_tokenCounter] = highValue;
+        emit CreatedNFT(s_tokenCounter, highValue);
         _safeMint(msg.sender, s_tokenCounter);
         s_tokenCounter = s_tokenCounter + 1;
-        emit CreatedNFT(s_tokenCounter, highValue);
     }
 
     // You could also just upload the raw SVG and have solildity convert it!
@@ -71,9 +69,7 @@ contract DynamicSvgNft is ERC721, Ownable {
     }
 
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        if (!_exists(tokenId)) {
-            revert ERC721Metadata__URI_QueryFor_NonExistentToken();
-        }
+        require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
         (, int256 price, , , ) = i_priceFeed.latestRoundData();
         string memory imageURI = s_lowImageURI;
         if (price >= s_tokenIdToHighValues[tokenId]) {
